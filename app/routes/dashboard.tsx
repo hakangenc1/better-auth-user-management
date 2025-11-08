@@ -51,9 +51,9 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const data = loaderData as unknown as DashboardLoaderData;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* Navigation Header */}
-      <nav className="bg-card shadow-sm border-b">
+      <nav className="bg-card shadow-sm border-b flex-shrink-0">
         <div className="container mx-auto px-4">
           <div className="flex justify-between items-center h-16">
             {/* Logo and Title */}
@@ -68,7 +68,19 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
                   to="/dashboard"
                   className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/dashboard/users"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                >
                   Users
+                </Link>
+                <Link
+                  to="/dashboard/activity"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                >
+                  Activity
                 </Link>
               </div>
             </div>
@@ -92,8 +104,10 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
       </nav>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <Outlet context={{ user: data.user }} />
+      <div className="flex-1 overflow-auto">
+        <div className="container mx-auto px-4 py-8 h-full">
+          <Outlet context={{ user: data.user }} />
+        </div>
       </div>
     </div>
   );

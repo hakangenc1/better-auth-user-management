@@ -7,6 +7,7 @@ interface User {
   name: string;
   role: "user" | "admin";
   emailVerified: boolean;
+  banned?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,7 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Fetch updated session after login
       const { data: session } = await authClient.getSession();
       if (session?.user) {
-        setUser(session.user as User);
+        const userData = session.user as User;
+        
+        // Check if user is banned
+        if (userData.banned) {
+          // Sign out the banned user
+          await authClient.signOut();
+          throw new Error("Your account has been banned. Please contact support for assistance.");
+        }
+        
+        setUser(userData);
       }
     } catch (error) {
       throw error;

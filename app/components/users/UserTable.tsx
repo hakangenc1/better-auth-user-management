@@ -14,6 +14,8 @@ interface UserTableProps {
   users: User[];
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  onBan: (user: User) => void;
+  onUnban: (user: User) => void;
   isLoading: boolean;
 }
 
@@ -64,7 +66,7 @@ function EmptyState() {
   );
 }
 
-export function UserTable({ users, onEdit, onDelete, isLoading }: UserTableProps) {
+export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading }: UserTableProps) {
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
@@ -145,6 +147,25 @@ export function UserTable({ users, onEdit, onDelete, isLoading }: UserTableProps
                     >
                       Edit
                     </Button>
+                    {user.banned ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onUnban(user)}
+                        className="text-green-600 hover:text-green-700"
+                      >
+                        Unban
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onBan(user)}
+                        className="text-orange-600 hover:text-orange-700"
+                      >
+                        Ban
+                      </Button>
+                    )}
                     <Button
                       variant="destructive"
                       size="sm"

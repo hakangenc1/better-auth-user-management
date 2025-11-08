@@ -43,7 +43,7 @@ type CreateUserFormData = z.infer<typeof createUserSchema>;
 interface UserCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSuccess: (email: string, name: string) => void;
 }
 
 export function UserCreateDialog({
@@ -68,8 +68,10 @@ export function UserCreateDialog({
     setIsSubmitting(true);
     try {
       await createUser(data);
+      const email = data.email;
+      const name = data.name;
       form.reset();
-      onSuccess();
+      onSuccess(email, name);
       onOpenChange(false);
     } catch (error) {
       // Error is already handled in UserContext

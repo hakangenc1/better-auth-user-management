@@ -13,6 +13,7 @@ import { Toaster } from "~/components/ui/sonner";
 import { AuthProvider } from "~/contexts/AuthContext";
 import { UserProvider } from "~/contexts/UserContext";
 import { ThemeProvider, getThemeFromCookie } from "~/contexts/ThemeContext";
+import { ActivityProvider } from "~/contexts/ActivityContext";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -60,9 +61,11 @@ export default function App({ loaderData }: Route.ComponentProps) {
   return (
     <ThemeProvider initialTheme={loaderData?.theme}>
       <AuthProvider>
-        <UserProvider>
-          <Outlet />
-        </UserProvider>
+        <ActivityProvider>
+          <UserProvider>
+            <Outlet />
+          </UserProvider>
+        </ActivityProvider>
       </AuthProvider>
     </ThemeProvider>
   );
