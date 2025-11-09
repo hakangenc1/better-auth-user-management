@@ -12,9 +12,9 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-// Loader - fetch users on server
+// Loader - fetch users on server from configured database
 export async function loader() {
-  const users = getAllUsers();
+  const users = await getAllUsers();
   return { users };
 }
 

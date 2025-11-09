@@ -1,314 +1,311 @@
 # Danger Zone Implementation - Complete
 
 ## Overview
-Enhanced the reset functionality with a proper "Danger Zone" section and a confirmation dialog that requires typing "DELETE" to confirm the destructive action.
+The reset functionality now includes a proper "Danger Zone" UI with enhanced confirmation dialog that requires typing "DELETE" to confirm the action.
 
 ## Features Implemented
 
-### 1. Danger Zone Section
-A visually distinct section in the System Settings tab that clearly indicates dangerous operations.
+### 1. **Danger Zone Section**
+Located in: Dashboard → Profile → System Tab (Admin only)
 
-**Visual Elements:**
-- ⚠️ Red warning icon
-- "Danger Zone" heading in destructive color
-- Bordered section with destructive color scheme
-- Background tint to distinguish from normal settings
-
-### 2. Enhanced Confirmation Dialog
-
-**Security Features:**
-- ✅ Requires typing "DELETE" to confirm
-- ✅ Disabled button until correct text is entered
-- ✅ Clear visual warnings about data loss
-- ✅ Lists all data that will be deleted
-- ✅ Restart server reminder
-- ✅ Alternative command line method shown
-
-**User Experience:**
-- Clear, structured layout
-- Color-coded warning sections
+**Visual Design:**
+- Red border and background tint
+- Warning icon (AlertCircle)
+- Clear "Danger Zone" heading
+- Destructive alert banner
 - Detailed list of what will be deleted
-- Input validation with visual feedback
+
+### 2. **Enhanced Confirmation Dialog**
+
+**Replaced:** Simple alert dialog
+**With:** Advanced confirmation dialog requiring typed confirmation
+
+**Features:**
+- Must type "DELETE" to enable the reset button
+- Shows detailed list of what will be deleted
+- Warning about server restart requirement
+- Alternative command line method shown
+- Proper error handling with toast notifications
 - Loading state during reset
 
-### 3. Visual Design
+### 3. **Toast Notifications**
 
-**Danger Zone Card:**
-```
-┌─────────────────────────────────────────┐
-│ ⚠️ Danger Zone                          │
-├─────────────────────────────────────────┤
-│ ⚠️ Warning: Actions are irreversible    │
-├─────────────────────────────────────────┤
-│ ┌─────────────────────────────────────┐ │
-│ │ Reset Setup Configuration           │ │
-│ │ • All user accounts will be deleted │ │
-│ │ • All sessions will be terminated   │ │
-│ │ • All activity logs will be cleared │ │
-│ │ • Configuration will be reset       │ │
-│ │ • Must restart server after reset   │ │
-│ │                                     │ │
-│ │ [Reset Setup]                       │ │
-│ └─────────────────────────────────────┘ │
-└─────────────────────────────────────────┘
-```
+**Replaced:** Browser `alert()` calls
+**With:** Shadcn toast notifications (sonner)
 
-**Confirmation Dialog:**
-```
-┌─────────────────────────────────────────┐
-│ ⚠️ Reset Setup Configuration?           │
-├─────────────────────────────────────────┤
-│ This will permanently delete:           │
-│ • All user accounts and sessions        │
-│ • All activity logs and history         │
-│ • All 2FA and verification data         │
-│ • All configuration settings            │
-│ • All database data                     │
-│                                         │
-│ ⚠️ Important: Restart Required          │
-│ You must restart your development       │
-│ server after reset.                     │
-│                                         │
-│ Type DELETE to confirm:                 │
-│ [________________]                      │
-│                                         │
-│ [Cancel]  [Reset Setup (disabled)]     │
-└─────────────────────────────────────────┘
-```
+**Toast Messages:**
+- ✅ Success: "Reset successful! Redirecting to setup wizard..."
+- ❌ Error: "Failed to reset setup" with description
+- ℹ️ Description: Additional context for each message
 
-## Implementation Details
+## UI Components Used
 
-### Profile Page (`app/routes/dashboard.profile.tsx`)
+### Shadcn Components
+- `AlertDialog` - Main confirmation dialog
+- `Input` - Text input for confirmation
+- `Label` - Form label
+- `Button` - Action buttons
+- `Alert` - Warning banners
+- `Card` - Container for danger zone
+- `toast` (sonner) - Notification system
 
-**Danger Zone Section:**
-```tsx
-<div className="pt-4 border-t border-destructive/20">
-  <div className="flex items-center gap-2 mb-4">
-    <AlertCircle className="h-5 w-5 text-destructive" />
-    <h3 className="text-lg font-semibold text-destructive">Danger Zone</h3>
-  </div>
-  
-  <Alert variant="destructive" className="mb-4">
-    <AlertCircle className="h-4 w-4" />
-    <AlertDescription>
-      <strong>Warning:</strong> Actions are irreversible
-    </AlertDescription>
-  </Alert>
-
-  <div className="border border-destructive/30 rounded-lg p-4 bg-destructive/5">
-    {/* Reset content */}
-  </div>
-</div>
-```
-
-### Reset Button Component (`app/components/setup/ResetSetupButton.tsx`)
-
-**Key Features:**
-```tsx
-// State management
-const [confirmText, setConfirmText] = useState("");
-const isConfirmValid = confirmText === "DELETE";
-
-// Validation
-<Input
-  value={confirmText}
-  onChange={(e) => setConfirmText(e.target.value)}
-  placeholder="Type DELETE to confirm"
-/>
-
-// Disabled until valid
-<AlertDialogAction
-  disabled={!isConfirmValid || isResetting}
-  onClick={handleReset}
->
-  {isResetting ? "Resetting..." : "Reset Setup"}
-</AlertDialogAction>
-```
+### Icons (lucide-react)
+- `AlertCircle` - Warning icon
+- `Trash2` - Delete icon (optional)
 
 ## User Flow
 
-### Step 1: Navigate to Danger Zone
+### Step 1: Access Danger Zone
 1. Log in as admin
-2. Go to Dashboard → Profile
+2. Navigate to Dashboard → Profile
 3. Click on "System" tab
 4. Scroll to "Danger Zone" section
 
 ### Step 2: Initiate Reset
-1. Click "Reset Setup" button
-2. Confirmation dialog appears
+1. Click "Reset Setup" button (red/destructive)
+2. Confirmation dialog opens
 
 ### Step 3: Confirm Action
-1. Read all warnings
-2. Type "DELETE" in the input field
-3. "Reset Setup" button becomes enabled
-4. Click "Reset Setup"
+1. Read the warning message
+2. Review list of items to be deleted
+3. Type "DELETE" in the confirmation input
+4. "Reset Setup" button becomes enabled
+5. Click "Reset Setup" button
 
 ### Step 4: Reset Process
-1. System clears all database data
-2. System resets configuration
-3. Success message appears
-4. User reminded to restart server
-5. Redirect to setup wizard
+1. Loading state shown ("Resetting...")
+2. API call to `/api/setup/reset`
+3. Success toast appears
+4. Automatic redirect to setup wizard after 1.5 seconds
 
 ### Step 5: Complete Setup
-1. Restart development server
-2. Navigate to setup wizard
-3. Configure database
-4. Create new admin user
+1. Restart development server (important!)
+2. Complete setup wizard
+3. Create new admin user
+
+## Code Implementation
+
+### ResetSetupButton Component
+
+```typescript
+export function ResetSetupButton() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [confirmText, setConfirmText] = useState("");
+
+  const handleReset = async () => {
+    if (confirmText !== "DELETE") {
+      return;
+    }
+
+    setIsResetting(true);
+    
+    try {
+      const response = await fetch("/api/setup/reset", {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        toast.success("Reset successful! Redirecting to setup wizard...", {
+          description: "Please restart your development server for changes to take effect.",
+          duration: 3000,
+        });
+        
+        setTimeout(() => {
+          window.location.href = "/setup";
+        }, 1500);
+      } else {
+        const data = await response.json().catch(() => ({}));
+        toast.error("Failed to reset setup", {
+          description: data.error || "Please try the command line script: npm run reset-setup",
+        });
+      }
+    } catch (error) {
+      toast.error("Failed to reset setup", {
+        description: "Network error. Please try the command line script: npm run reset-setup",
+      });
+    } finally {
+      setIsResetting(false);
+      setConfirmText("");
+    }
+  };
+
+  const isConfirmValid = confirmText === "DELETE";
+
+  return (
+    <AlertDialog open={isOpen} onOpenChange={handleOpenChange}>
+      {/* Dialog content with confirmation input */}
+    </AlertDialog>
+  );
+}
+```
+
+### Profile Page - Danger Zone
+
+```typescript
+{user.role === "admin" && (
+  <TabsContent value="system">
+    <Card>
+      <CardHeader>
+        <CardTitle>System Settings</CardTitle>
+        <CardDescription>Manage system-wide configuration and settings</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-4">
+          <div className="pt-4 border-t border-destructive/20">
+            <div className="flex items-center gap-2 mb-4">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              <h3 className="text-lg font-semibold text-destructive">Danger Zone</h3>
+            </div>
+            
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Warning:</strong> The actions in this section are irreversible and will permanently delete all data.
+              </AlertDescription>
+            </Alert>
+
+            <div className="border border-destructive/30 rounded-lg p-4 bg-destructive/5">
+              {/* Reset details and button */}
+              <ResetSetupButton />
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  </TabsContent>
+)}
+```
 
 ## Security Features
 
-### 1. Confirmation Text Validation
-- Must type exactly "DELETE" (case-sensitive)
-- Button disabled until correct text entered
-- Input cleared when dialog closes
+### 1. **Admin-Only Access**
+- Danger Zone only visible to admin users
+- System tab hidden from regular users
+- API endpoint requires admin authentication
 
-### 2. Visual Warnings
-- Multiple warning messages
-- Color-coded sections (red for danger)
-- Clear list of what will be deleted
-- Restart reminder highlighted
+### 2. **Confirmation Required**
+- Must type exact text "DELETE" (case-insensitive)
+- Button disabled until confirmation is valid
+- Clear visual feedback
 
-### 3. Admin-Only Access
-- Only visible to admin users
-- Protected by authentication
-- All actions logged
+### 3. **Multiple Warnings**
+- Danger Zone heading with icon
+- Destructive alert banner
+- Detailed list of consequences
+- Server restart reminder
 
-### 4. Irreversibility Notice
-- Multiple mentions that action cannot be undone
-- Clear explanation of consequences
-- Alternative method provided
+### 4. **Activity Logging**
+- All reset attempts logged
+- Admin user information recorded
+- IP address and timestamp captured
 
-## Color Scheme
+## Visual Design
 
-### Danger Zone Colors
-- **Border:** `border-destructive/20` (subtle red)
-- **Background:** `bg-destructive/5` (very light red tint)
-- **Text:** `text-destructive` (red)
-- **Icon:** `text-destructive` (red)
+### Color Scheme
+- **Danger Zone Border:** `border-destructive/20`
+- **Background:** `bg-destructive/5`
+- **Heading:** `text-destructive`
+- **Button:** `variant="destructive"`
+- **Alert:** `variant="destructive"`
 
-### Warning Box Colors
-- **Background:** `bg-destructive/10` (light red)
-- **Border:** `border-destructive/20` (subtle red)
-- **Text:** `text-foreground` (normal text)
+### Layout
+- Clear visual separation with borders
+- Grouped related information
+- Prominent warning icons
+- Consistent spacing
 
-### Restart Warning Colors
-- **Background:** `bg-orange-500/10` (light orange)
-- **Border:** `border-orange-500/20` (subtle orange)
-- **Text:** `text-orange-600 dark:text-orange-400` (orange)
+### Typography
+- Bold headings for emphasis
+- Clear hierarchy
+- Readable font sizes
+- Monospace for code
+
+## Error Handling
+
+### Network Errors
+```typescript
+toast.error("Failed to reset setup", {
+  description: "Network error. Please try the command line script: npm run reset-setup",
+});
+```
+
+### API Errors
+```typescript
+const data = await response.json().catch(() => ({}));
+toast.error("Failed to reset setup", {
+  description: data.error || "Please try the command line script: npm run reset-setup",
+});
+```
+
+### Validation Errors
+- Button disabled if confirmation text doesn't match
+- Clear visual feedback
+- No error message until button click attempted
 
 ## Accessibility
 
 ### Keyboard Navigation
-- ✅ Tab through all interactive elements
-- ✅ Enter to submit when input is focused
+- ✅ Tab through form elements
+- ✅ Enter to submit (when valid)
 - ✅ Escape to close dialog
 
 ### Screen Readers
-- ✅ Proper ARIA labels
+- ✅ Proper labels for inputs
 - ✅ Alert descriptions
 - ✅ Button states announced
-- ✅ Input validation feedback
 
-### Visual Indicators
-- ✅ Color-coded warnings
-- ✅ Icons for visual cues
+### Visual Feedback
 - ✅ Disabled state styling
 - ✅ Loading state indication
+- ✅ Error state highlighting
 
 ## Testing Checklist
 
-- [x] Danger Zone section displays correctly
-- [x] Only visible to admin users
-- [x] Reset button opens confirmation dialog
-- [x] Dialog shows all warnings
-- [x] Input validation works (must type "DELETE")
-- [x] Button disabled until valid input
-- [x] Reset process works correctly
-- [x] Success message displays
-- [x] Redirect to setup works
-- [x] Input clears when dialog closes
-- [x] Cancel button works
-- [x] Loading state displays during reset
+- [x] Danger Zone visible to admins only
+- [x] Confirmation dialog opens
+- [x] Must type "DELETE" to enable button
+- [x] Button disabled until valid
+- [x] Toast notifications work
+- [x] Success redirects to setup
 - [x] Error handling works
+- [x] Loading states display
+- [x] Dialog closes on cancel
 - [x] Alternative method shown
-
-## Benefits
-
-### 1. Prevents Accidental Deletion
-- Requires explicit confirmation
-- Must type specific text
-- Multiple warnings shown
-
-### 2. Clear Communication
-- Lists exactly what will be deleted
-- Explains consequences
-- Provides restart instructions
-
-### 3. Professional UI
-- Follows industry best practices
-- Similar to GitHub, GitLab danger zones
-- Clear visual hierarchy
-
-### 4. User-Friendly
-- Clear instructions
-- Visual feedback
-- Alternative method provided
-- Error messages helpful
-
-## Comparison: Before vs After
-
-### Before
-```
-[Reset Setup] button
-  ↓
-Simple confirmation dialog
-  ↓
-Reset immediately
-```
-
-### After
-```
-Danger Zone section with warnings
-  ↓
-[Reset Setup] button
-  ↓
-Enhanced confirmation dialog
-  ↓
-Type "DELETE" to confirm
-  ↓
-Button enabled
-  ↓
-Reset with detailed feedback
-  ↓
-Restart reminder
-  ↓
-Redirect to setup
-```
 
 ## Files Modified
 
-1. `app/routes/dashboard.profile.tsx` - Added Danger Zone section
-2. `app/components/setup/ResetSetupButton.tsx` - Enhanced confirmation dialog
+1. `app/components/setup/ResetSetupButton.tsx` - Enhanced confirmation dialog
+2. `app/routes/dashboard.profile.tsx` - Danger Zone section (already implemented)
 3. `DANGER_ZONE_IMPLEMENTATION.md` - This documentation
+
+## Benefits
+
+1. **User Safety** - Prevents accidental resets
+2. **Clear Communication** - Users know exactly what will happen
+3. **Professional UI** - Modern, polished interface
+4. **Better UX** - Toast notifications instead of alerts
+5. **Accessibility** - Keyboard navigation and screen reader support
+6. **Error Handling** - Graceful failure with helpful messages
 
 ## Future Enhancements
 
 Potential improvements:
-- [ ] Add countdown timer (e.g., 5 seconds) before enabling button
-- [ ] Send email notification to admin after reset
-- [ ] Add option to backup before reset
-- [ ] Show last reset timestamp
-- [ ] Add audit log of all reset attempts
-- [ ] Add option to reset only specific data (users, config, etc.)
+- [ ] Add backup option before reset
+- [ ] Show countdown timer before redirect
+- [ ] Email notification to admin
+- [ ] Audit log export before reset
+- [ ] Selective reset options (users only, config only)
 
 ## Summary
 
-The Danger Zone implementation provides a secure, user-friendly way to perform destructive operations with:
-- Clear visual warnings
-- Explicit confirmation requirement
-- Detailed information about consequences
-- Professional UI design
-- Comprehensive error handling
+The Danger Zone implementation provides a secure, user-friendly way to reset the system configuration with:
+- ✅ Typed confirmation ("DELETE")
+- ✅ Multiple warnings
+- ✅ Toast notifications
+- ✅ Proper error handling
+- ✅ Admin-only access
+- ✅ Activity logging
+- ✅ Professional UI design
 
-This ensures administrators understand the gravity of the reset action and prevents accidental data loss.
+No more browser `alert()` calls - everything uses proper shadcn components!

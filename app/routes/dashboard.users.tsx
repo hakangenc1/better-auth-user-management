@@ -30,9 +30,9 @@ export function meta({ }: Route.MetaArgs) {
   ];
 }
 
-// Loader - fetch users on server
+// Loader - fetch users on server from configured database
 export async function loader() {
-  const users = getAllUsers();
+  const users = await getAllUsers();
   // Sort by createdAt descending (newest first)
   const sortedUsers = users.sort((a, b) => {
     const dateA = new Date(a.createdAt).getTime();

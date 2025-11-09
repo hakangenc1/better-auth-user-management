@@ -1,8 +1,8 @@
 import { type LoaderFunctionArgs, type ActionFunctionArgs } from "react-router";
 import Database from "better-sqlite3";
 import { requireAdmin } from "~/lib/auth.middleware";
-
-const db = new Database(process.env.DATABASE_URL || "./data/auth.db");
+import { ConfigStore } from "~/lib/config.server";
+import { DatabaseConnectionManager } from "~/lib/db-connection.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   // Require admin role
@@ -13,14 +13,46 @@ export async function loader({ request }: LoaderFunctionArgs) {
     const limit = parseInt(url.searchParams.get("limit") || "50");
     const offset = parseInt(url.searchParams.get("offset") || "0");
 
-    // Get activities from database
-    const activities = db
-      .prepare(
+    // Load configuration
+    const configStore = new ConfigStore();
+    const config = await configStore.load();
+
+    if (!config || !config.databaseConfig) {
+      return Response.json({ error: "Database configuration not found" }, { status: 500 });
+    }
+
+    // Create database adapter
+    const connectionManager = new DatabaseConnectionManager();
+    const adapter = await connectionManager.createAdapter(config.databaseConfig);
+
+    let activities: any[] = [];
+
+    if (config.databaseConfig.type === 'sqlite') {
+      const db = adapter as Database.Database;
+
+      // Get activities from SQLite database
+      activities = db
+        .prepare(
+          `SELECT * FROM activity 
+           ORDER BY timestamp DESC 
+           LIMIT ? OFFSET ?`
+        )
+        .all(limit, offset);
+
+      db.close();
+    } else {
+      // PostgreSQL
+      const pool = adapter as any;
+
+      const result = await pool.query(
         `SELECT * FROM activity 
          ORDER BY timestamp DESC 
-         LIMIT ? OFFSET ?`
-      )
-      .all(limit, offset);
+         LIMIT $1 OFFSET $2`,
+        [limit, offset]
+      );
+
+      activities = result.rows;
+    }
 
     return Response.json({
       activities: activities.map((a: any) => ({
@@ -54,23 +86,59 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const timestamp = new Date().toISOString();
 
-    // Insert activity into database
-    db.prepare(
-      `INSERT INTO activity (id, action, user, target, type, metadata, timestamp, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      id,
-      action,
-      user,
-      target || null,
-      type,
-      metadata ? JSON.stringify(metadata) : null,
-      timestamp,
-      timestamp
-    );
+    // Load configuration
+    const configStore = new ConfigStore();
+    const config = await configStore.load();
+
+    if (!config || !config.databaseConfig) {
+      return Response.json({ error: "Database configuration not found" }, { status: 500 });
+    }
+
+    // Create database adapter
+    const connectionManager = new DatabaseConnectionManager();
+    const adapter = await connectionManager.createAdapter(config.databaseConfig);
+
+    if (config.databaseConfig.type === 'sqlite') {
+      const db = adapter as Database.Database;
+
+      // Insert activity into SQLite database
+      db.prepare(
+        `INSERT INTO activity (id, action, user, target, type, metadata, timestamp, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(
+        id,
+        action,
+        user,
+        target || null,
+        type,
+        metadata ? JSON.stringify(metadata) : null,
+        timestamp,
+        timestamp
+      );
+
+      db.close();
+    } else {
+      // PostgreSQL
+      const pool = adapter as any;
+
+      await pool.query(
+        `INSERT INTO activity (id, action, "user", target, type, metadata, timestamp, "createdAt")
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [
+          id,
+          action,
+          user,
+          target || null,
+          type,
+          metadata ? JSON.stringify(metadata) : null,
+          timestamp,
+          timestamp
+        ]
+      );
+    }
 
     return Response.json({
       success: true,

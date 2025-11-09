@@ -14,6 +14,7 @@ import {
   AlertDialogTrigger,
 } from "~/components/ui/alert-dialog";
 import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 export function ResetSetupButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -34,14 +35,25 @@ export function ResetSetupButton() {
 
       if (response.ok) {
         // Show success message before redirect
-        alert("Reset successful! Please restart your development server.\n\nPress OK to continue to setup wizard.");
-        // Reload the page to restart setup
-        window.location.href = "/setup";
+        toast.success("Reset successful! Redirecting to setup wizard...", {
+          description: "Please restart your development server for changes to take effect.",
+          duration: 3000,
+        });
+        
+        // Wait a moment for the toast to show, then redirect
+        setTimeout(() => {
+          window.location.href = "/setup";
+        }, 1500);
       } else {
-        alert("Failed to reset setup. Please try the command line script: npm run reset-setup");
+        const data = await response.json().catch(() => ({}));
+        toast.error("Failed to reset setup", {
+          description: data.error || "Please try the command line script: npm run reset-setup",
+        });
       }
     } catch (error) {
-      alert("Failed to reset setup. Please try the command line script: npm run reset-setup");
+      toast.error("Failed to reset setup", {
+        description: "Network error. Please try the command line script: npm run reset-setup",
+      });
     } finally {
       setIsResetting(false);
       setConfirmText("");
