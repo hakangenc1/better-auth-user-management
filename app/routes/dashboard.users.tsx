@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from "react";
-import { useOutletContext } from "react-router";
+import { useState } from "react";
+import { useOutletContext, useLoaderData, useRevalidator } from "react-router";
 import type { Route } from "./+types/dashboard.users";
-import { useUsers } from "~/contexts/UserContext";
+import { getAllUsers } from "~/lib/db.server";
+import { requireAdmin } from "~/lib/auth.middleware";
 import { useActivity } from "~/contexts/ActivityContext";
 import { UserTable } from "~/components/users/UserTable";
 import { UserCreateDialog } from "~/components/users/UserCreateDialog";
@@ -22,17 +23,136 @@ interface DashboardContext {
   };
 }
 
-export function meta({}: Route.MetaArgs) {
+export function meta({ }: Route.MetaArgs) {
   return [
     { title: "User Management - Dashboard" },
     { name: "description", content: "Manage users in the system" },
   ];
 }
 
+// Loader - fetch users on server
+export async function loader() {
+  const users = getAllUsers();
+  // Sort by createdAt descending (newest first)
+  const sortedUsers = users.sort((a, b) => {
+    const dateA = new Date(a.createdAt).getTime();
+    const dateB = new Date(b.createdAt).getTime();
+    return dateB - dateA;
+  });
+  return { users: sortedUsers };
+}
+
+// Action - handle user update and unban requests (admin only)
+export async function action({ request }: Route.ActionArgs) {
+  // Require admin role for all actions
+  await requireAdmin(request);
+
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  const userId = formData.get("userId") as string;
+
+  if (intent === "update" && userId) {
+    const email = formData.get("email") as string;
+    const name = formData.get("name") as string;
+    const role = formData.get("role") as string;
+    const emailVerified = formData.get("emailVerified") === "true";
+
+    try {
+      // Use Better Auth database operations for user management
+      const { updateUser } = await import("~/lib/user-management.server");
+
+      await updateUser(userId, {
+        email,
+        name,
+        role: role as "user" | "admin",
+        emailVerified,
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to update user:", error);
+      return { success: false, error: error.message || "Failed to update user" };
+    }
+  }
+
+  if (intent === "ban" && userId) {
+    const banReason = formData.get("banReason") as string || "Banned by administrator";
+
+    try {
+      // Use Better Auth database operations to ban user
+      const { banUser } = await import("~/lib/user-management.server");
+
+      await banUser(userId, banReason);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to ban user:", error);
+      return { success: false, error: error.message || "Failed to ban user" };
+    }
+  }
+
+  if (intent === "unban" && userId) {
+    try {
+      // Use Better Auth database operations to unban user
+      const { unbanUser } = await import("~/lib/user-management.server");
+
+      await unbanUser(userId);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to unban user:", error);
+      return { success: false, error: error.message || "Failed to unban user" };
+    }
+  }
+
+  if (intent === "delete" && userId) {
+    try {
+      // Use Better Auth database operations to delete user
+      const { deleteUser } = await import("~/lib/user-management.server");
+
+      await deleteUser(userId);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to delete user:", error);
+      return { success: false, error: error.message || "Failed to delete user" };
+    }
+  }
+
+  if (intent === "create") {
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const name = formData.get("name") as string;
+    const role = formData.get("role") as string;
+
+    try {
+      // Use Better Auth database operations to create user
+      const { createUser } = await import("~/lib/user-management.server");
+
+      await createUser({
+        email,
+        password,
+        name,
+        role: role as "user" | "admin",
+        emailVerified: true, // Auto-verify admin-created users
+      });
+
+      return { success: true };
+    } catch (error: any) {
+      console.error("Failed to create user:", error);
+      return { success: false, error: error.message || "Failed to create user" };
+    }
+  }
+
+  return { success: false };
+}
+
+// Main component
 export default function DashboardUsers() {
+  const { users } = useLoaderData<typeof loader>();
   const { user } = useOutletContext<DashboardContext>();
-  const { users, isLoading, error, fetchUsers, unbanUser } = useUsers();
   const { logActivity } = useActivity();
+  const revalidator = useRevalidator();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -41,17 +161,10 @@ export default function DashboardUsers() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Fetch users on component mount
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
   // Paginate users
-  const paginatedUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return users.slice(startIndex, endIndex);
-  }, [users, currentPage, itemsPerPage]);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = users.slice(startIndex, endIndex);
 
   const totalPages = Math.ceil(users.length / itemsPerPage);
 
@@ -85,7 +198,7 @@ export default function DashboardUsers() {
       target: email,
       type: "create",
     });
-    fetchUsers();
+    revalidator.revalidate();
   };
 
   const handleEditSuccess = () => {
@@ -98,7 +211,7 @@ export default function DashboardUsers() {
         type: "edit",
       });
     }
-    fetchUsers();
+    revalidator.revalidate();
   };
 
   const handleEditDialogChange = (open: boolean) => {
@@ -118,7 +231,7 @@ export default function DashboardUsers() {
         type: "delete",
       });
     }
-    fetchUsers();
+    revalidator.revalidate();
   };
 
   const handleDeleteDialogChange = (open: boolean) => {
@@ -135,7 +248,16 @@ export default function DashboardUsers() {
 
   const handleUnban = async (targetUser: User) => {
     try {
-      await unbanUser(targetUser.id);
+      // Submit form to unban user via action
+      const formData = new FormData();
+      formData.append("intent", "unban");
+      formData.append("userId", targetUser.id);
+
+      await fetch(window.location.pathname, {
+        method: "POST",
+        body: formData,
+      });
+
       toast.success(`${targetUser.name} has been unbanned`);
       logActivity({
         action: "Unbanned user",
@@ -143,6 +265,7 @@ export default function DashboardUsers() {
         target: targetUser.email,
         type: "unban",
       });
+      revalidator.revalidate();
     } catch (error) {
       toast.error("Failed to unban user");
     }
@@ -158,7 +281,7 @@ export default function DashboardUsers() {
         type: "ban",
       });
     }
-    fetchUsers();
+    revalidator.revalidate();
   };
 
   const handleBanDialogChange = (open: boolean) => {
@@ -168,6 +291,8 @@ export default function DashboardUsers() {
     }
   };
 
+  const isAdmin = user.role === "admin";
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Header Section */}
@@ -175,35 +300,13 @@ export default function DashboardUsers() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">User Management</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage and monitor all users
+            {isAdmin ? "Manage and monitor all users" : "View all users (read-only)"}
           </p>
         </div>
-        <Button onClick={handleCreateUser} size="default">
+        <Button onClick={handleCreateUser} size="default" disabled={!isAdmin}>
           Create User
         </Button>
       </div>
-
-      {/* Error State */}
-      {error && (
-        <div className="mb-4 rounded-lg bg-destructive/10 border border-destructive/50 p-3 flex-shrink-0">
-          <div className="flex items-start">
-            <div className="flex-1">
-              <h3 className="text-sm font-medium text-destructive">
-                Error loading users
-              </h3>
-              <p className="mt-1 text-sm text-destructive/90">{error}</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={fetchUsers}
-              className="ml-4"
-            >
-              Retry
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* User Table - Scrollable */}
       <div className="flex-1 overflow-auto">
@@ -213,7 +316,8 @@ export default function DashboardUsers() {
           onDelete={handleDelete}
           onBan={handleBan}
           onUnban={handleUnban}
-          isLoading={isLoading}
+          isLoading={false}
+          isAdmin={isAdmin}
         />
       </div>
 

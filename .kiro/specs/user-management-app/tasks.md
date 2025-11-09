@@ -32,6 +32,9 @@
   - Create Better Auth server configuration with admin plugin
   - Create Better Auth client configuration with admin client plugin
   - Set up environment variables for API URL
+  - Create database directory and .env file
+  - Create database initialization script to set up SQLite schema
+  - Create seed script to populate initial users
   - _Requirements: 1.1, 1.2, 1.3_
 
 - [x] 3. Implement authentication context and state management use context7

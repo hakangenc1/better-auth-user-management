@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from "recharts";
 import { Users, UserCheck, UserX, Shield } from "lucide-react";
@@ -9,15 +8,13 @@ interface UserStatsProps {
 }
 
 export function UserStats({ users }: UserStatsProps) {
-  const stats = useMemo(() => {
-    const total = users.length;
-    const active = users.filter((u) => u.emailVerified && !u.banned).length;
-    const banned = users.filter((u) => u.banned).length;
-    const admins = users.filter((u) => u.role === "admin").length;
-    const pending = users.filter((u) => !u.emailVerified && !u.banned).length;
+  const total = users.length;
+  const active = users.filter((u) => u.emailVerified && !u.banned).length;
+  const banned = users.filter((u) => u.banned).length;
+  const admins = users.filter((u) => u.role === "admin").length;
+  const pending = users.filter((u) => !u.emailVerified && !u.banned).length;
 
-    return { total, active, banned, admins, pending };
-  }, [users]);
+  const stats = { total, active, banned, admins, pending };
 
   const statusData = [
     { name: "Active", value: stats.active, color: "hsl(142, 71%, 45%)" },
@@ -31,19 +28,17 @@ export function UserStats({ users }: UserStatsProps) {
   ];
 
   // Calculate user registrations by month (mock data based on existing users)
-  const registrationData = useMemo(() => {
-    const monthCounts: Record<string, number> = {};
-    
-    users.forEach((user) => {
-      const date = new Date(user.createdAt);
-      const monthKey = date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-      monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
-    });
+  const monthCounts: Record<string, number> = {};
+  
+  users.forEach((user) => {
+    const date = new Date(user.createdAt);
+    const monthKey = date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+    monthCounts[monthKey] = (monthCounts[monthKey] || 0) + 1;
+  });
 
-    return Object.entries(monthCounts)
-      .map(([month, count]) => ({ month, count }))
-      .slice(-6); // Last 6 months
-  }, [users]);
+  const registrationData = Object.entries(monthCounts)
+    .map(([month, count]) => ({ month, count }))
+    .slice(-6); // Last 6 months
 
   return (
     <div className="space-y-6">

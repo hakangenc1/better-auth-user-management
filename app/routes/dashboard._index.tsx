@@ -1,7 +1,6 @@
-import { useEffect, useMemo } from "react";
-import { Link } from "react-router";
+import { Link, useLoaderData } from "react-router";
 import type { Route } from "./+types/dashboard._index";
-import { useUsers } from "~/contexts/UserContext";
+import { getAllUsers } from "~/lib/db.server";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Users, UserCheck, UserX, Shield, Activity, TrendingUp } from "lucide-react";
 import { BarChart, Bar, ResponsiveContainer, Tooltip, Cell } from "recharts";
@@ -13,12 +12,14 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export default function DashboardIndex() {
-  const { users, fetchUsers } = useUsers();
+// Loader - fetch users on server
+export async function loader() {
+  const users = getAllUsers();
+  return { users };
+}
 
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+export default function DashboardIndex() {
+  const { users } = useLoaderData<typeof loader>();
 
   const stats = {
     total: users.length,
@@ -28,14 +29,12 @@ export default function DashboardIndex() {
   };
 
   // User status breakdown for mini chart
-  const statusData = useMemo(() => {
-    const pending = users.filter((u) => !u.emailVerified && !u.banned).length;
-    return [
-      { name: 'Active', value: stats.active, color: '#22c55e', label: 'Active Users' },
-      { name: 'Pending', value: pending, color: '#eab308', label: 'Pending Verification' },
-      { name: 'Banned', value: stats.banned, color: '#ef4444', label: 'Banned Users' },
-    ];
-  }, [users, stats.active, stats.banned]);
+  const pending = users.filter((u) => !u.emailVerified && !u.banned).length;
+  const statusData = [
+    { name: 'Active', value: stats.active, color: '#22c55e', label: 'Active Users' },
+    { name: 'Pending', value: pending, color: '#eab308', label: 'Pending Verification' },
+    { name: 'Banned', value: stats.banned, color: '#ef4444', label: 'Banned Users' },
+  ];
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {

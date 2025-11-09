@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import { useUsers } from "~/contexts/UserContext";
+import { authClient } from "~/lib/auth.client";
 import { Loader2Icon } from "lucide-react";
 import type { User } from "~/types";
 
@@ -26,18 +26,30 @@ export function UserBanDialog({
   onOpenChange,
   onSuccess,
 }: UserBanDialogProps) {
-  const { banUser } = useUsers();
   const [isBanning, setIsBanning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleBan = async () => {
     if (!user) return;
 
     setIsBanning(true);
+    setError(null);
     try {
-      await banUser(user.id);
+      // Ban user via server action
+      const formData = new FormData();
+      formData.append("intent", "ban");
+      formData.append("userId", user.id);
+
+      await fetch(window.location.pathname, {
+        method: "POST",
+        body: formData,
+      });
+
       onSuccess();
       onOpenChange(false);
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to ban user";
+      setError(errorMessage);
       console.error("Failed to ban user:", error);
     } finally {
       setIsBanning(false);

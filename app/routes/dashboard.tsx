@@ -1,9 +1,11 @@
-import { Outlet, redirect, Link, Form } from "react-router";
+import { Outlet, redirect, Link, Form, useLocation } from "react-router";
 import type { Route } from "./+types/dashboard";
 import { auth } from "~/lib/auth.server";
 import { requireAuth } from "~/lib/auth.middleware";
+import { requireSetupComplete } from "~/middleware/setup-check.server";
 import { Button } from "~/components/ui/button";
 import { ThemeToggle } from "~/components/ui/theme-toggle";
+import { cn } from "~/lib/utils";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -13,6 +15,9 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
+  // Check if setup is complete first
+  await requireSetupComplete(request);
+  
   // Use authentication middleware to check for authenticated admin user
   const user = await requireAuth(request);
 
@@ -49,6 +54,14 @@ interface DashboardLoaderData {
 
 export default function Dashboard({ loaderData }: Route.ComponentProps) {
   const data = loaderData as unknown as DashboardLoaderData;
+  const location = useLocation();
+
+  const isActive = (path: string) => {
+    if (path === "/dashboard") {
+      return location.pathname === "/dashboard";
+    }
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <div className="h-screen bg-background flex flex-col overflow-hidden">
@@ -66,21 +79,58 @@ export default function Dashboard({ loaderData }: Route.ComponentProps) {
               <div className="hidden md:flex space-x-4">
                 <Link
                   to="/dashboard"
-                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive("/dashboard")
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
                 >
                   Dashboard
                 </Link>
                 <Link
                   to="/dashboard/users"
-                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive("/dashboard/users")
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
                 >
                   Users
                 </Link>
                 <Link
+                  to="/dashboard/sessions"
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive("/dashboard/sessions")
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  Sessions
+                </Link>
+                <Link
                   to="/dashboard/activity"
-                  className="px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive("/dashboard/activity")
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
                 >
                   Activity
+                </Link>
+                <Link
+                  to="/dashboard/profile"
+                  className={cn(
+                    "px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                    isActive("/dashboard/profile")
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                  )}
+                >
+                  Profile
                 </Link>
               </div>
             </div>

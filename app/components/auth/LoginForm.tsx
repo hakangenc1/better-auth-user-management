@@ -15,7 +15,7 @@ import {
   FormMessage,
 } from "~/components/ui/form";
 
-// Zod schema for login form validation
+// Zod schema for password login validation
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -37,6 +37,7 @@ export function LoginForm() {
     },
   });
 
+  // Login submission
   const onSubmit = async (data: LoginFormValues, e?: React.BaseSyntheticEvent) => {
     e?.preventDefault();
     setIsLoading(true);
@@ -44,34 +45,37 @@ export function LoginForm() {
 
     try {
       await login(data.email, data.password);
-      // Redirect to dashboard after successful login
+      // Keep loading state active during redirect
       navigate("/dashboard");
+      // Don't set isLoading to false - let the redirect happen with loading state active
     } catch (err) {
+      // Only disable loading on error
+      setIsLoading(false);
       // Display error message for invalid credentials
       setError(
         err instanceof Error ? err.message : "Invalid email or password"
       );
-    } finally {
-      setIsLoading(false);
     }
   };
 
+
   return (
     <div className="w-full max-w-md space-y-6">
+      {/* Display error message if login fails */}
+      {error && (
+        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
+      {/* Login Form */}
       <Form {...form}>
-        <form 
-          onSubmit={form.handleSubmit(onSubmit)} 
+        <form
+          onSubmit={form.handleSubmit(onSubmit)}
           className="space-y-4"
           method="post"
           action="#"
         >
-          {/* Display error message if login fails */}
-          {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
           <FormField
             control={form.control}
             name="email"

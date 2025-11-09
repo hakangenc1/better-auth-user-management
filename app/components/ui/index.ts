@@ -1,10 +1,12 @@
 // Export all shadcn/ui components for easier imports
+export * from "./alert"
 export * from "./alert-dialog"
 export * from "./button"
 export * from "./dialog"
 export * from "./form"
 export * from "./input"
 export * from "./label"
+export * from "./scroll-area"
 export * from "./select"
 export * from "./skeleton"
 export * from "./sonner"

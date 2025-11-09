@@ -17,6 +17,7 @@ interface UserTableProps {
   onBan: (user: User) => void;
   onUnban: (user: User) => void;
   isLoading: boolean;
+  isAdmin?: boolean;
 }
 
 function TableSkeleton() {
@@ -66,7 +67,7 @@ function EmptyState() {
   );
 }
 
-export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading }: UserTableProps) {
+export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading, isAdmin = true }: UserTableProps) {
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
@@ -144,6 +145,7 @@ export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading }
                       variant="outline"
                       size="sm"
                       onClick={() => onEdit(user)}
+                      disabled={!isAdmin}
                     >
                       Edit
                     </Button>
@@ -153,6 +155,7 @@ export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading }
                         size="sm"
                         onClick={() => onUnban(user)}
                         className="text-green-600 hover:text-green-700"
+                        disabled={!isAdmin}
                       >
                         Unban
                       </Button>
@@ -162,6 +165,7 @@ export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading }
                         size="sm"
                         onClick={() => onBan(user)}
                         className="text-orange-600 hover:text-orange-700"
+                        disabled={!isAdmin}
                       >
                         Ban
                       </Button>
@@ -170,6 +174,7 @@ export function UserTable({ users, onEdit, onDelete, onBan, onUnban, isLoading }
                       variant="destructive"
                       size="sm"
                       onClick={() => onDelete(user)}
+                      disabled={!isAdmin}
                     >
                       Delete
                     </Button>

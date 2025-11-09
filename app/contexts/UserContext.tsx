@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { authClient } from "~/lib/auth.client";
 import type { User, CreateUserData, UpdateUserData } from "~/types";
 import { useActivity } from "~/contexts/ActivityContext";
@@ -25,7 +25,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const { logActivity } = useActivity();
   const { user: currentUser } = useAuth();
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = async () => {
     setIsLoading(true);
     setError(null);
     try {
@@ -50,9 +50,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  };
 
-  const createUser = useCallback(async (data: CreateUserData) => {
+  const createUser = async (data: CreateUserData) => {
     setIsLoading(true);
     setError(null);
     try {
@@ -88,9 +88,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [logActivity, currentUser]);
+  };
 
-  const updateUser = useCallback(async (userId: string, data: UpdateUserData) => {
+  const updateUser = async (userId: string, data: UpdateUserData) => {
     setIsLoading(true);
     setError(null);
     
@@ -140,9 +140,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [users, logActivity, currentUser]);
+  };
 
-  const deleteUser = useCallback(async (userId: string) => {
+  const deleteUser = async (userId: string) => {
     setIsLoading(true);
     setError(null);
     
@@ -181,9 +181,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [users, logActivity, currentUser]);
+  };
 
-  const banUser = useCallback(async (userId: string) => {
+  const banUser = async (userId: string) => {
     setIsLoading(true);
     setError(null);
     
@@ -226,9 +226,9 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [users, fetchUsers, logActivity, currentUser]);
+  };
 
-  const unbanUser = useCallback(async (userId: string) => {
+  const unbanUser = async (userId: string) => {
     setIsLoading(true);
     setError(null);
     
@@ -271,7 +271,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [users, fetchUsers, logActivity, currentUser]);
+  };
 
   const value: UserContextType = {
     users,

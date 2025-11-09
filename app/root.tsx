@@ -11,7 +11,6 @@ import {
 import type { Route } from "./+types/root";
 import { Toaster } from "~/components/ui/sonner";
 import { AuthProvider } from "~/contexts/AuthContext";
-import { UserProvider } from "~/contexts/UserContext";
 import { ThemeProvider, getThemeFromCookie } from "~/contexts/ThemeContext";
 import { ActivityProvider } from "~/contexts/ActivityContext";
 import "./app.css";
@@ -62,9 +61,7 @@ export default function App({ loaderData }: Route.ComponentProps) {
     <ThemeProvider initialTheme={loaderData?.theme}>
       <AuthProvider>
         <ActivityProvider>
-          <UserProvider>
-            <Outlet />
-          </UserProvider>
+          <Outlet />
         </ActivityProvider>
       </AuthProvider>
     </ThemeProvider>

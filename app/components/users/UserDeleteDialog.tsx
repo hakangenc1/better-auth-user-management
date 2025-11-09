@@ -9,7 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "~/components/ui/alert-dialog";
-import { useUsers } from "~/contexts/UserContext";
+import { authClient } from "~/lib/auth.client";
 import { Loader2Icon } from "lucide-react";
 import type { User } from "~/types";
 
@@ -26,19 +26,30 @@ export function UserDeleteDialog({
   onOpenChange,
   onSuccess,
 }: UserDeleteDialogProps) {
-  const { deleteUser } = useUsers();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleDelete = async () => {
     if (!user) return;
 
     setIsDeleting(true);
+    setError(null);
     try {
-      await deleteUser(user.id);
+      // Delete user via server action
+      const formData = new FormData();
+      formData.append("intent", "delete");
+      formData.append("userId", user.id);
+
+      await fetch(window.location.pathname, {
+        method: "POST",
+        body: formData,
+      });
+
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      // Error is already handled in UserContext
+      const errorMessage = error instanceof Error ? error.message : "Failed to delete user";
+      setError(errorMessage);
       console.error("Failed to delete user:", error);
     } finally {
       setIsDeleting(false);

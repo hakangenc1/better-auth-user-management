@@ -1,11 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import type { Route } from "./+types/dashboard.activity";
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card";
 import { Button } from "~/components/ui/button";
-import { Activity, UserPlus, UserMinus, Ban, ShieldCheck, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { ScrollArea } from "~/components/ui/scroll-area";
+import { Activity, UserPlus, UserMinus, Ban, ShieldCheck, Edit, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
 import { useActivity } from "~/contexts/ActivityContext";
 
-export function meta({}: Route.MetaArgs) {
+export function meta({ }: Route.MetaArgs) {
   return [
     { title: "Activity Log - Dashboard" },
     { name: "description", content: "View admin actions and system activity" },
@@ -13,9 +14,16 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function DashboardActivity() {
-  const { activities } = useActivity();
+  const { activities, refreshActivities, isLoading } = useActivity();
   const [currentPage, setCurrentPage] = useState(1);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const itemsPerPage = 10;
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refreshActivities();
+    setIsRefreshing(false);
+  };
 
   const getIcon = (type: "create" | "delete" | "ban" | "unban" | "edit" | "role") => {
     switch (type) {
@@ -49,11 +57,9 @@ export default function DashboardActivity() {
   };
 
   // Paginate activities
-  const paginatedActivities = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return activities.slice(startIndex, endIndex);
-  }, [activities, currentPage, itemsPerPage]);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedActivities = activities.slice(startIndex, endIndex);
 
   const totalPages = Math.ceil(activities.length / itemsPerPage);
 
@@ -125,45 +131,60 @@ export default function DashboardActivity() {
 
       {/* Activity Timeline */}
       <Card className="flex-1 flex flex-col overflow-hidden">
-        <CardHeader className="flex-shrink-0">
+        <CardHeader className="flex-shrink-0 flex flex-row items-center justify-between">
           <CardTitle>Recent Activity</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
         </CardHeader>
-        <CardContent className="flex-1 overflow-auto">
-          {activities.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Activity className="h-12 w-12 text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                No Activity Yet
-              </h3>
-              <p className="text-sm text-muted-foreground max-w-sm">
-                Admin actions like creating, editing, banning, or deleting users will appear here.
-                Start managing users to see activity logs.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {paginatedActivities.map((activity) => (
-                <div
-                  key={activity.id}
-                  className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent transition-colors"
-                >
-                  <div className="mt-1">{getIcon(activity.type)}</div>
-                  <div className="flex-1 space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      {activity.action}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Target: <span className="font-mono">{activity.target}</span>
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      By {activity.user} • {formatTime(activity.timestamp)}
-                    </p>
+        <ScrollArea className="flex-1" type="auto">
+          <div className="px-6 py-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Activity className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  No Activity Yet
+                </h3>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Admin actions like creating, editing, banning, or deleting users will appear here.
+                  Start managing users to see activity logs.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {paginatedActivities.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-accent transition-colors"
+                  >
+                    <div className="mt-1">{getIcon(activity.type)}</div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {activity.action}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Target: <span className="font-mono">{activity.target}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        By {activity.user} • {formatTime(activity.timestamp)}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
+                ))}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </Card>
 
       {/* Pagination - Outside scroll area */}

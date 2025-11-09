@@ -29,7 +29,7 @@ import {
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Checkbox } from "~/components/ui/checkbox";
-import { useUsers } from "~/contexts/UserContext";
+import { authClient } from "~/lib/auth.client";
 import { Loader2Icon } from "lucide-react";
 import type { User } from "~/types";
 
@@ -56,8 +56,8 @@ export function UserEditDialog({
   onOpenChange,
   onSuccess,
 }: UserEditDialogProps) {
-  const { updateUser } = useUsers();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<EditUserFormData>({
     resolver: zodResolver(editUserSchema),
@@ -76,7 +76,7 @@ export function UserEditDialog({
         email: user.email,
         name: user.name,
         role: user.role,
-        emailVerified: user.emailVerified,
+        emailVerified: Boolean(user.emailVerified), // Convert 0/1 to boolean
       });
     }
   }, [user, form]);
@@ -85,12 +85,27 @@ export function UserEditDialog({
     if (!user) return;
 
     setIsSubmitting(true);
+    setError(null);
     try {
-      await updateUser(user.id, data);
+      // Update user via server action
+      const formData = new FormData();
+      formData.append("intent", "update");
+      formData.append("userId", user.id);
+      formData.append("email", data.email);
+      formData.append("name", data.name);
+      formData.append("role", data.role);
+      formData.append("emailVerified", data.emailVerified.toString());
+
+      await fetch(window.location.pathname, {
+        method: "POST",
+        body: formData,
+      });
+
       onSuccess();
       onOpenChange(false);
     } catch (error) {
-      // Error is already handled in UserContext
+      const errorMessage = error instanceof Error ? error.message : "Failed to update user";
+      setError(errorMessage);
       console.error("Failed to update user:", error);
     } finally {
       setIsSubmitting(false);

@@ -27,7 +27,7 @@ import {
 } from "~/components/ui/select";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { useUsers } from "~/contexts/UserContext";
+import { authClient } from "~/lib/auth.client";
 import { Loader2Icon } from "lucide-react";
 
 // Zod schema for form validation
@@ -51,8 +51,8 @@ export function UserCreateDialog({
   onOpenChange,
   onSuccess,
 }: UserCreateDialogProps) {
-  const { createUser } = useUsers();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
@@ -66,15 +66,31 @@ export function UserCreateDialog({
 
   const onSubmit = async (data: CreateUserFormData) => {
     setIsSubmitting(true);
+    setError(null);
     try {
-      await createUser(data);
-      const email = data.email;
-      const name = data.name;
+      // Create user via server action (uses Better Auth admin API)
+      const formData = new FormData();
+      formData.append("intent", "create");
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      formData.append("name", data.name);
+      formData.append("role", data.role);
+
+      const response = await fetch(window.location.pathname, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create user");
+      }
+
       form.reset();
-      onSuccess(email, name);
+      onSuccess(data.email, data.name);
       onOpenChange(false);
     } catch (error) {
-      // Error is already handled in UserContext
+      const errorMessage = error instanceof Error ? error.message : "Failed to create user";
+      setError(errorMessage);
       console.error("Failed to create user:", error);
     } finally {
       setIsSubmitting(false);
