@@ -100,21 +100,22 @@ export function ResetSetupButton() {
         <AlertDialogHeader>
           <div className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-destructive" />
-            <AlertDialogTitle>Reset Setup Configuration?</AlertDialogTitle>
+            <AlertDialogTitle>Complete Reset of Setup & Database?</AlertDialogTitle>
           </div>
           <AlertDialogDescription>
-            This action will reset your entire setup configuration.
+            This will permanently delete all users, data, and configuration. The database will be recreated from scratch on restart.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="space-y-3 py-2">
           <div className="bg-destructive/10 border border-destructive/20 rounded-md p-3 space-y-2">
             <p className="font-semibold text-foreground">This will permanently delete:</p>
             <ul className="text-sm space-y-1 ml-4">
-              <li>• All user accounts and sessions</li>
+              <li>• All user accounts (including admin)</li>
+              <li>• All sessions and authentication data</li>
               <li>• All activity logs and history</li>
               <li>• All 2FA and verification data</li>
               <li>• All configuration settings</li>
-              <li>• All database data</li>
+              <li>• Entire database (from scratch)</li>
             </ul>
           </div>
 

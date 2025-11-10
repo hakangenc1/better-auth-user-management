@@ -90,7 +90,9 @@ async function resetSetup() {
     console.log('\n📋 Summary:');
     console.log('   ✓ Configuration files deleted');
     console.log('   ✓ Database files deleted');
-    console.log('   ✓ All data cleared');
+    console.log('   ✓ All users deleted');
+    console.log('   ✓ All data and sessions cleared');
+    console.log('   ✓ 2FA and verification data cleared');
     console.log('\n📝 Next steps:');
     console.log('   1. Restart your development server');
     console.log('   2. Database will be recreated automatically');

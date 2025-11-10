@@ -4,12 +4,15 @@ import { logActivity } from "~/lib/activity.server";
 import { resetAuthInstance } from "~/lib/auth.server";
 import { promises as fs } from "fs";
 import path from "path";
+import { ConfigStore } from "~/lib/config.server";
+import { DatabaseConnectionManager } from "~/lib/db-connection.server";
+import type Database from "better-sqlite3";
 
 /**
  * API endpoint for resetting setup configuration and database
  * Requires admin authentication
  * Logs all reset attempts for security audit
- * Clears configuration and deletes all database files
+ * Completely clears all users, data, and configuration
  */
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -51,11 +54,75 @@ export async function action({ request }: ActionFunctionArgs) {
       console.log(`Setup reset initiated from IP: ${ip}`);
     }
     
-    // Step 1: Reset the auth instance
-    console.log('� Resetting auth instance...');
+    // Step 1: Try to clear database records (works while server is running)
+    console.log('🧹 Attempting to clear database records (if configured)...');
+    try {
+      const configStore = new ConfigStore();
+      const config = await configStore.load();
+
+      if (config && config.databaseConfig) {
+        const mgr = new DatabaseConnectionManager();
+        const adapter = await mgr.createAdapter(config.databaseConfig);
+
+        const tablesToClear = [
+          'session',
+          'account',
+          'verification',
+          'twoFactor',
+          'activity',
+          'user'
+        ];
+
+        if (config.databaseConfig.type === 'sqlite') {
+          try {
+            const db = adapter as Database.Database;
+            // temporarily disable foreign keys to allow bulk deletes
+            try { db.pragma('foreign_keys = OFF'); } catch {}
+            for (const table of tablesToClear) {
+              try {
+                db.prepare(`DELETE FROM ${table}`).run();
+                console.log(`  ✅ Cleared table ${table}`);
+              } catch (error: any) {
+                if (!error.message.includes('no such table')) {
+                  console.warn(`  ⚠️  Could not clear ${table}:`, error.message);
+                }
+              }
+            }
+            try { db.pragma('foreign_keys = ON'); } catch {}
+            try { db.close(); } catch {}
+          } catch (error: any) {
+            console.warn('  ⚠️  SQLite adapter clear failed:', error.message);
+          }
+        } else {
+          try {
+            const pool = adapter as any;
+            for (const table of tablesToClear) {
+              try {
+                await pool.query(`DELETE FROM "${table}"`);
+                console.log(`  ✅ Cleared table ${table}`);
+              } catch (error: any) {
+                if (!/does not exist|relation .* does not exist/i.test(error.message)) {
+                  console.warn(`  ⚠️  Could not clear ${table}:`, error.message);
+                }
+              }
+            }
+            try { await pool.end(); } catch {}
+          } catch (error: any) {
+            console.warn('  ⚠️  PostgreSQL adapter clear failed:', error.message);
+          }
+        }
+      } else {
+        console.log('  ℹ️  No database configuration found; skipping in-place clear');
+      }
+    } catch (error: any) {
+      console.warn('⚠️  Could not clear database records in-place:', error.message);
+    }
+
+    // Step 2: Reset the auth instance
+    console.log('🔄 Resetting auth instance...');
     resetAuthInstance();
-    
-    // Step 2: Remove configuration files
+
+    // Step 3: Remove configuration files
     console.log('🗑️  Removing configuration files...');
     const configDir = path.join(process.cwd(), '.data');
     const configFiles = ['config.json', 'config.encrypted.json'];
@@ -65,21 +132,21 @@ export async function action({ request }: ActionFunctionArgs) {
       const configPath = path.join(configDir, configFile);
       try {
         await fs.unlink(configPath);
-        console.log(`  ✅ Removed ${configFile}`);
+        console.log(`  Removed ${configFile}`);
         configRemoved = true;
       } catch (error: any) {
         if (error.code !== 'ENOENT') {
-          console.warn(`  ⚠️  Could not remove ${configFile}:`, error.message);
+          console.warn(`  Could not remove ${configFile}:`, error.message);
         }
       }
     }
 
     if (!configRemoved) {
-      console.log('  ℹ️  No configuration files found (already clean)');
+      console.log('  No configuration files found (already clean)');
     }
     
-    // Step 3: Delete database files
-    console.log('🗑️  Removing database files...');
+    // Step 3: Delete database files completely
+    console.log('Removing database files...');
     try {
       const dataDir = path.join(process.cwd(), 'data');
       const files = await fs.readdir(dataDir);
@@ -89,35 +156,35 @@ export async function action({ request }: ActionFunctionArgs) {
         if (file.endsWith('.db') || file.endsWith('.db-shm') || file.endsWith('.db-wal')) {
           try {
             await fs.unlink(path.join(dataDir, file));
-            console.log(`  ✅ Removed ${file}`);
+            console.log(`  Removed ${file}`);
             dbFilesRemoved++;
           } catch (error: any) {
             if (error.code !== 'EBUSY') {
-              console.warn(`  ⚠️  Failed to remove ${file}:`, error.message);
+              console.warn(`  Failed to remove ${file}:`, error.message);
             }
           }
         }
       }
       
       if (dbFilesRemoved > 0) {
-        console.log(`✅ Removed ${dbFilesRemoved} database file(s)`);
+        console.log(`Removed ${dbFilesRemoved} database file(s)`);
       } else {
-        console.log('ℹ️  No database files found (already clean)');
+        console.log('No database files found (already clean)');
       }
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
-        console.warn('⚠️  Could not remove database files:', error.message);
+        console.warn('Could not remove database files:', error.message);
       }
     }
     
-    console.log('✨ Setup reset complete!');
+    console.log('Setup reset complete! All users, data, and configuration cleared.');
     
     return Response.json({
       success: true,
-      message: 'Setup configuration and database have been reset. Please restart your development server for changes to take effect.',
+      message: 'Complete reset successful! All users, data, and configuration have been cleared. Please restart your development server for changes to take effect.',
     });
   } catch (error: any) {
-    console.error('❌ Setup reset error:', error);
+    console.error('Setup reset error:', error);
     
     return Response.json({
       success: false,
