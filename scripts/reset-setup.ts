@@ -2,9 +2,8 @@
 /**
  * Reset Setup Script
  * 
- * This script resets the entire setup configuration and database,
- * allowing you to start fresh with the setup wizard.
- * Clears all users, sessions, and data from the database.
+ * Complete reset of database and configuration.
+ * Matches the behavior of the web-based reset button.
  * 
  * Usage:
  *   npm run reset-setup
@@ -15,116 +14,88 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Database from 'better-sqlite3';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-async function clearDatabaseData() {
-  console.log('\n🗑️  Clearing database data...');
-
-  const dbPath = path.join(__dirname, '..', 'data', 'auth.db');
-
-  try {
-    // Check if database exists
-    await fs.access(dbPath);
-
-    // Open database and clear all data
-    const db = new Database(dbPath);
-
-    try {
-      // Delete all data from tables (in correct order due to foreign keys)
-      console.log('  - Clearing activity logs...');
-      db.prepare('DELETE FROM activity').run();
-
-      console.log('  - Clearing two-factor authentication...');
-      db.prepare('DELETE FROM "twoFactor"').run();
-
-      console.log('  - Clearing verification records...');
-      db.prepare('DELETE FROM verification').run();
-
-      console.log('  - Clearing accounts...');
-      db.prepare('DELETE FROM account').run();
-
-      console.log('  - Clearing sessions...');
-      db.prepare('DELETE FROM session').run();
-
-      console.log('  - Clearing users...');
-      db.prepare('DELETE FROM user').run();
-
-      console.log('✅ Database data cleared successfully');
-    } catch (error: any) {
-      console.warn('⚠️  Could not clear some database tables:', error.message);
-    } finally {
-      db.close();
-    }
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      console.log('ℹ️  SQLite database not found (skipping data cleanup)');
-    } else {
-      console.warn('⚠️  Could not access database:', error.message);
-    }
-  }
-}
 
 async function resetSetup() {
   console.log('🔄 Resetting setup configuration and database...\n');
 
   try {
-    // 1. Clear database data first (before removing the database file)
-    await clearDatabaseData();
-
-    // 2. Remove configuration file
-    const configPath = path.join(__dirname, '..', '.data', 'config.encrypted.json');
-    try {
-      await fs.unlink(configPath);
-      console.log('\n✅ Removed configuration file');
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        console.log('\nℹ️  Configuration file not found (already clean)');
-      } else {
-        console.warn('\n⚠️  Could not remove configuration file:', error.message);
-      }
-    }
-
-    // 3. Remove SQLite database if it exists
-    const dbPath = path.join(__dirname, '..', 'data', 'auth.db');
-    try {
-      await fs.unlink(dbPath);
-      console.log('✅ Removed SQLite database');
-    } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        console.log('ℹ️  SQLite database not found (skipping)');
-      } else {
-        console.warn('⚠️  Could not remove SQLite database:', error.message);
-      }
-    }
-
-    // 4. Remove any other database files
-    const dataDir = path.join(__dirname, '..', 'data');
-    try {
-      const files = await fs.readdir(dataDir);
-      for (const file of files) {
-        if (file.endsWith('.db') || file.endsWith('.db-shm') || file.endsWith('.db-wal')) {
-          await fs.unlink(path.join(dataDir, file));
-          console.log(`✅ Removed ${file}`);
+    // Step 1: Remove configuration files
+    console.log('🗑️  Removing configuration files...');
+    const configDir = path.join(process.cwd(), '.data');
+    const configFiles = ['config.json', 'config.encrypted.json'];
+    let configRemoved = false;
+    
+    for (const configFile of configFiles) {
+      const configPath = path.join(configDir, configFile);
+      try {
+        await fs.unlink(configPath);
+        console.log(`  ✅ Removed ${configFile}`);
+        configRemoved = true;
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.warn(`  ⚠️  Could not remove ${configFile}:`, error.message);
         }
       }
+    }
+
+    if (!configRemoved) {
+      console.log('  ℹ️  No configuration files found (already clean)');
+    }
+
+    // Step 2: Remove database files
+    console.log('\n🗑️  Removing database files...');
+    const dataDir = path.join(process.cwd(), 'data');
+    try {
+      const files = await fs.readdir(dataDir);
+      let dbFilesRemoved = 0;
+      let failedFiles: string[] = [];
+      
+      for (const file of files) {
+        if (file.endsWith('.db') || file.endsWith('.db-shm') || file.endsWith('.db-wal')) {
+          try {
+            await fs.unlink(path.join(dataDir, file));
+            console.log(`  ✅ Removed ${file}`);
+            dbFilesRemoved++;
+          } catch (error: any) {
+            if (error.code === 'EBUSY') {
+              failedFiles.push(file);
+              console.warn(`  ⚠️  Cannot remove ${file} (file is locked by another process)`);
+            } else {
+              console.warn(`  ⚠️  Failed to remove ${file}: ${error.message}`);
+            }
+          }
+        }
+      }
+      
+      if (dbFilesRemoved > 0) {
+        console.log(`  ✅ Removed ${dbFilesRemoved} database file(s)`);
+      } else if (failedFiles.length > 0) {
+        console.warn('\n  ⚠️  Could not remove database files - they are locked');
+        console.warn('  Files could not be removed:');
+        failedFiles.forEach(f => console.warn(`     - ${f}`));
+        process.exit(1);
+      } else {
+        console.log('  ℹ️  No database files found (already clean)');
+      }
     } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        console.log('ℹ️  Data directory not found (skipping)');
+      if (error.code !== 'ENOENT') {
+        console.warn('\n⚠️  Could not access data directory:', error.message);
       }
     }
 
     console.log('\n✨ Setup reset complete!');
-    console.log('   All users, sessions, and data have been deleted.');
+    console.log('\n📋 Summary:');
+    console.log('   ✓ Configuration files deleted');
+    console.log('   ✓ Database files deleted');
+    console.log('   ✓ All data cleared');
     console.log('\n📝 Next steps:');
     console.log('   1. Restart your development server');
-    console.log('   2. Navigate to http://localhost:5173/setup');
-    console.log('   3. Complete the setup wizard again\n');
-
-    console.log('⚠️  Note: If you were using PostgreSQL, you\'ll need to manually');
-    console.log('   clear the data or drop and recreate the database tables.\n');
+    console.log('   2. Database will be recreated automatically');
+    console.log('   3. Navigate to http://localhost:5173/setup');
+    console.log('   4. Complete the setup wizard\n');
 
   } catch (error: any) {
     console.error('\n❌ Error resetting setup:', error.message);

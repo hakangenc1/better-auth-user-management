@@ -1,16 +1,16 @@
 import { type ActionFunctionArgs } from "react-router";
 import { requireAdmin } from "~/lib/auth.middleware";
 import { ConfigStore } from "~/lib/config.server";
-import { DatabaseConnectionManager } from "~/lib/db-connection.server";
 import { logActivity } from "~/lib/activity.server";
 import { resetAuthInstance } from "~/lib/auth.server";
-import Database from "better-sqlite3";
+import { promises as fs } from "fs";
+import path from "path";
 
 /**
  * API endpoint for resetting setup configuration and database
  * Requires admin authentication
  * Logs all reset attempts for security audit
- * Clears all users, sessions, and data from the database
+ * Clears configuration and deletes all database files
  */
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -28,12 +28,9 @@ export async function action({ request }: ActionFunctionArgs) {
                request.headers.get('x-real-ip') || 
                'unknown';
     
-    let adminInfo = { email: 'unknown', name: 'unknown', id: 'unknown' };
-    
     // Try to log if user is authenticated (optional)
     try {
       const user = await requireAdmin(request);
-      adminInfo = { email: user.email, name: user.name, id: user.id };
       
       await logActivity({
         userId: user.id,
@@ -55,106 +52,70 @@ export async function action({ request }: ActionFunctionArgs) {
       console.log(`Setup reset initiated from IP: ${ip}`);
     }
     
-    // Step 1: Clear all database data
-    console.log('🗑️  Clearing database data...');
-    let adapter: any = null;
-    try {
-      const configStore = new ConfigStore();
-      const config = await configStore.load();
-      
-      if (config && config.databaseConfig) {
-        const connectionManager = new DatabaseConnectionManager();
-        adapter = await connectionManager.createAdapter(config.databaseConfig);
-        
-        if (config.databaseConfig.type === 'sqlite') {
-          const db = adapter as Database.Database;
-          
-          // Delete all data from tables (in correct order due to foreign keys)
-          console.log('  - Clearing activity logs...');
-          db.prepare('DELETE FROM activity').run();
-          
-          console.log('  - Clearing two-factor authentication...');
-          db.prepare('DELETE FROM "twoFactor"').run();
-          
-          console.log('  - Clearing verification records...');
-          db.prepare('DELETE FROM verification').run();
-          
-          console.log('  - Clearing accounts...');
-          db.prepare('DELETE FROM account').run();
-          
-          console.log('  - Clearing sessions...');
-          db.prepare('DELETE FROM session').run();
-          
-          console.log('  - Clearing users...');
-          db.prepare('DELETE FROM user').run();
-          
-          // Close the database connection
-          db.close();
-          console.log('✅ Database data cleared and connection closed');
-        } else {
-          // PostgreSQL
-          const pool = adapter as any;
-          
-          console.log('  - Clearing activity logs...');
-          await pool.query('DELETE FROM activity');
-          
-          console.log('  - Clearing two-factor authentication...');
-          await pool.query('DELETE FROM "twoFactor"');
-          
-          console.log('  - Clearing verification records...');
-          await pool.query('DELETE FROM verification');
-          
-          console.log('  - Clearing accounts...');
-          await pool.query('DELETE FROM account');
-          
-          console.log('  - Clearing sessions...');
-          await pool.query('DELETE FROM session');
-          
-          console.log('  - Clearing users...');
-          await pool.query('DELETE FROM "user"');
-          
-          // Close the pool connection
-          await pool.end();
-          console.log('✅ Database data cleared and connection closed');
-        }
-      } else {
-        console.log('ℹ️  No database configuration found, skipping data cleanup');
-      }
-    } catch (error: any) {
-      console.warn('⚠️  Could not clear database data:', error.message);
-      // Try to close connection if it was opened
-      if (adapter) {
-        try {
-          if (typeof adapter.close === 'function') {
-            adapter.close();
-          } else if (typeof adapter.end === 'function') {
-            await adapter.end();
-          }
-        } catch (closeError) {
-          console.warn('⚠️  Could not close database connection:', closeError);
-        }
-      }
-      // Continue with config reset even if database cleanup fails
-    }
-    
-    // Step 2: Reset the auth instance
-    console.log('🔄 Resetting auth instance...');
+    // Step 1: Reset the auth instance
+    console.log('� Resetting auth instance...');
     resetAuthInstance();
     
-    // Step 3: Reset the configuration
-    console.log('🗑️  Clearing configuration...');
-    const configStore = new ConfigStore();
-    await configStore.reset();
-    console.log('✅ Configuration cleared successfully');
+    // Step 2: Remove configuration files
+    console.log('🗑️  Removing configuration files...');
+    const configDir = path.join(process.cwd(), '.data');
+    const configFiles = ['config.json', 'config.encrypted.json'];
+    let configRemoved = false;
     
-    // Step 4: Wait a moment to ensure all operations complete
-    await new Promise(resolve => setTimeout(resolve, 500));
+    for (const configFile of configFiles) {
+      const configPath = path.join(configDir, configFile);
+      try {
+        await fs.unlink(configPath);
+        console.log(`  ✅ Removed ${configFile}`);
+        configRemoved = true;
+      } catch (error: any) {
+        if (error.code !== 'ENOENT') {
+          console.warn(`  ⚠️  Could not remove ${configFile}:`, error.message);
+        }
+      }
+    }
+
+    if (!configRemoved) {
+      console.log('  ℹ️  No configuration files found (already clean)');
+    }
+    
+    // Step 3: Delete database files
+    console.log('🗑️  Removing database files...');
+    try {
+      const dataDir = path.join(process.cwd(), 'data');
+      const files = await fs.readdir(dataDir);
+      let dbFilesRemoved = 0;
+      
+      for (const file of files) {
+        if (file.endsWith('.db') || file.endsWith('.db-shm') || file.endsWith('.db-wal')) {
+          try {
+            await fs.unlink(path.join(dataDir, file));
+            console.log(`  ✅ Removed ${file}`);
+            dbFilesRemoved++;
+          } catch (error: any) {
+            if (error.code !== 'EBUSY') {
+              console.warn(`  ⚠️  Failed to remove ${file}:`, error.message);
+            }
+          }
+        }
+      }
+      
+      if (dbFilesRemoved > 0) {
+        console.log(`✅ Removed ${dbFilesRemoved} database file(s)`);
+      } else {
+        console.log('ℹ️  No database files found (already clean)');
+      }
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        console.warn('⚠️  Could not remove database files:', error.message);
+      }
+    }
     
     console.log('✨ Setup reset complete!');
     
     return Response.json({
       success: true,
-      message: 'Setup configuration and database have been reset. All users and data have been deleted.',
+      message: 'Setup configuration and database have been reset. Please restart your development server for changes to take effect.',
     });
   } catch (error: any) {
     console.error('❌ Setup reset error:', error);
