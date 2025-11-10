@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import type { SearchFilters } from "~/types";
 import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
@@ -32,17 +32,15 @@ export function UserSearch({ onSearch, onExport, totalResults }: UserSearchProps
   });
   const [isFilterMenuOpen, setIsFilterMenuOpen] = useState(false);
 
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     onSearch(filters);
-  };
+  }, [filters, onSearch]);
 
-  const updateFilters = (partial: Partial<SearchFilters>) => {
+  const updateFilters = useCallback((partial: Partial<SearchFilters>) => {
     setFilters((prev) => {
-      const next: SearchFilters = { ...prev, ...partial };
-      onSearch(next);
-      return next;
+      return { ...prev, ...partial };
     });
-  };
+  }, []);
 
   const handleClear = () => {
     const clearedFilters: SearchFilters = {
@@ -94,7 +92,10 @@ export function UserSearch({ onSearch, onExport, totalResults }: UserSearchProps
             </Label>
             <Select
               value={filters.role}
-              onValueChange={(value) => updateFilters({ role: value })}
+              onValueChange={(value) => {
+                updateFilters({ role: value });
+                onSearch({ ...filters, role: value });
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Any role" />
@@ -113,9 +114,10 @@ export function UserSearch({ onSearch, onExport, totalResults }: UserSearchProps
             </Label>
             <Select
               value={filters.status}
-              onValueChange={(value) =>
-                updateFilters({ status: value as SearchFilters["status"] })
-              }
+              onValueChange={(value) => {
+                updateFilters({ status: value as SearchFilters["status"] });
+                onSearch({ ...filters, status: value as SearchFilters["status"] });
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Any status" />
