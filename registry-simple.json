@@ -1,0 +1,181 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "ubs-better-admin",
+  "homepage": "https://github.com/hakangenc1/better-admin",
+  "items": [
+    {
+      "name": "login-form",
+      "type": "registry:component", 
+      "title": "Login Form",
+      "description": "A secure login form component with two-factor authentication support.",
+      "registryDependencies": [
+        "button",
+        "input", 
+        "form",
+        "card"
+      ],
+      "dependencies": [
+        "react-hook-form",
+        "@hookform/resolvers",
+        "zod"
+      ],
+      "files": [
+        {
+          "path": "components/auth/login-form.tsx",
+          "type": "registry:component",
+          "target": "components/auth/login-form.tsx"
+        }
+      ]
+    },
+    {
+      "name": "setup-form",
+      "type": "registry:component",
+      "title": "Setup Form", 
+      "description": "Initial setup form for admin configuration and database setup.",
+      "registryDependencies": [
+        "button",
+        "input",
+        "form", 
+        "card",
+        "tabs"
+      ],
+      "dependencies": [
+        "react-hook-form",
+        "@hookform/resolvers", 
+        "zod"
+      ],
+      "files": [
+        {
+          "path": "components/auth/setup-form.tsx",
+          "type": "registry:component",
+          "target": "components/auth/setup-form.tsx"
+        }
+      ]
+    },
+    {
+      "name": "admin-user-form",
+      "type": "registry:component",
+      "title": "Admin User Form",
+      "description": "Form component for creating and managing admin users.",
+      "registryDependencies": [
+        "button",
+        "input",
+        "form",
+        "select",
+        "checkbox"
+      ],
+      "dependencies": [
+        "react-hook-form", 
+        "@hookform/resolvers",
+        "zod"
+      ],
+      "files": [
+        {
+          "path": "components/setup/admin-user-form.tsx",
+          "type": "registry:component",
+          "target": "components/setup/admin-user-form.tsx"
+        }
+      ]
+    },
+    {
+      "name": "user-table",
+      "type": "registry:component",
+      "title": "User Management Table",
+      "description": "Advanced table component for managing users with actions and filtering.",
+      "registryDependencies": [
+        "table",
+        "button", 
+        "dropdown-menu",
+        "badge",
+        "alert-dialog"
+      ],
+      "dependencies": [
+        "@tanstack/react-table"
+      ],
+      "files": [
+        {
+          "path": "components/users/user-table.tsx", 
+          "type": "registry:component",
+          "target": "components/users/user-table.tsx"
+        }
+      ]
+    },
+    {
+      "name": "theme-toggle",
+      "type": "registry:component",
+      "title": "Theme Toggle",
+      "description": "Dark/light mode toggle component with system preference detection.",
+      "registryDependencies": [
+        "button",
+        "dropdown-menu"
+      ],
+      "dependencies": [
+        "next-themes"
+      ],
+      "files": [
+        {
+          "path": "components/ui/theme-toggle.tsx",
+          "type": "registry:component", 
+          "target": "components/ui/theme-toggle.tsx"
+        }
+      ]
+    },
+    {
+      "name": "dashboard-layout",
+      "type": "registry:block",
+      "title": "Dashboard Layout",
+      "description": "Complete dashboard layout with sidebar navigation, header, and content area.",
+      "registryDependencies": [
+        "button",
+        "dropdown-menu",
+        "scroll-area"
+      ],
+      "dependencies": [
+        "react-router-dom"
+      ],
+      "files": [
+        {
+          "path": "components/layout/dashboard-layout.tsx",
+          "type": "registry:component",
+          "target": "components/layout/dashboard-layout.tsx"
+        }
+      ]
+    },
+    {
+      "name": "auth-context",
+      "type": "registry:hook",
+      "title": "Authentication Context", 
+      "description": "React context for managing authentication state and user sessions.",
+      "registryDependencies": [],
+      "dependencies": [
+        "react"
+      ],
+      "files": [
+        {
+          "path": "lib/contexts/auth-context.tsx",
+          "type": "registry:hook",
+          "target": "lib/contexts/auth-context.tsx"
+        }
+      ]
+    },
+    {
+      "name": "activity-tracker",
+      "type": "registry:component",
+      "title": "Activity Tracker",
+      "description": "Component for displaying user activity logs and audit trails.",
+      "registryDependencies": [
+        "table",
+        "badge", 
+        "scroll-area"
+      ],
+      "dependencies": [],
+      "files": [
+        {
+          "path": "components/dashboard/activity-tracker.tsx",
+          "type": "registry:component",
+          "target": "components/dashboard/activity-tracker.tsx"
+        }
+      ]
+    }
+  ]
+}

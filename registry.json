@@ -1,0 +1,290 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "ubs-better-admin",
+  "homepage": "https://github.com/hakangenc1/better-admin",
+  "items": [
+    {
+      "name": "login-form",
+      "type": "registry:component",
+      "title": "Login Form",
+      "description": "A secure login form component with two-factor authentication support.",
+      "registryDependencies": [
+        "button",
+        "input",
+        "form",
+        "card"
+      ],
+      "dependencies": [
+        "react-hook-form",
+        "@hookform/resolvers",
+        "zod"
+      ],
+      "files": [
+        {
+          "path": "app/components/auth/LoginForm.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "setup-form",
+      "type": "registry:component",
+      "title": "Setup Form",
+      "description": "Initial setup form for admin configuration and database setup.",
+      "registryDependencies": [
+        "button",
+        "input",
+        "form",
+        "card",
+        "tabs"
+      ],
+      "dependencies": [
+        "react-hook-form",
+        "@hookform/resolvers",
+        "zod"
+      ],
+      "files": [
+        {
+          "path": "app/components/auth/SetupForm.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "admin-user-form",
+      "type": "registry:component",
+      "title": "Admin User Form",
+      "description": "Form component for creating and managing admin users.",
+      "registryDependencies": [
+        "button",
+        "input",
+        "form",
+        "select",
+        "checkbox"
+      ],
+      "dependencies": [
+        "react-hook-form",
+        "@hookform/resolvers",
+        "zod"
+      ],
+      "files": [
+        {
+          "path": "app/components/setup/AdminUserForm.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "user-management-table",
+      "type": "registry:component",
+      "title": "User Management Table",
+      "description": "Advanced table component for managing users with actions and filtering.",
+      "registryDependencies": [
+        "table",
+        "button",
+        "dropdown-menu",
+        "badge",
+        "alert-dialog"
+      ],
+      "dependencies": [
+        "@tanstack/react-table"
+      ],
+      "files": [
+        {
+          "path": "app/components/users/UserTable.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "theme-toggle",
+      "type": "registry:component",
+      "title": "Theme Toggle",
+      "description": "Dark/light mode toggle component with system preference detection.",
+      "registryDependencies": [
+        "button",
+        "dropdown-menu"
+      ],
+      "dependencies": [
+        "next-themes"
+      ],
+      "files": [
+        {
+          "path": "app/components/ui/theme-toggle.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "dashboard-layout",
+      "type": "registry:block",
+      "title": "Dashboard Layout",
+      "description": "Complete dashboard layout with sidebar navigation, header, and content area.",
+      "registryDependencies": [
+        "button",
+        "dropdown-menu",
+        "scroll-area",
+        "theme-toggle"
+      ],
+      "dependencies": [
+        "react-router-dom"
+      ],
+      "files": [
+        {
+          "path": "app/routes/dashboard.tsx",
+          "type": "registry:page"
+        }
+      ]
+    },
+    {
+      "name": "auth-context",
+      "type": "registry:hook",
+      "title": "Authentication Context",
+      "description": "React context for managing authentication state and user sessions.",
+      "registryDependencies": [],
+      "dependencies": [
+        "react"
+      ],
+      "files": [
+        {
+          "path": "app/contexts/AuthContext.tsx",
+          "type": "registry:hook"
+        }
+      ]
+    },
+    {
+      "name": "activity-tracker",
+      "type": "registry:component",
+      "title": "Activity Tracker",
+      "description": "Component for displaying user activity logs and audit trails.",
+      "registryDependencies": [
+        "table",
+        "badge",
+        "scroll-area"
+      ],
+      "dependencies": [],
+      "files": [
+        {
+          "path": "app/components/dashboard/ActivityTracker.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "security-alerts",
+      "type": "registry:component",
+      "title": "Security Alerts",
+      "description": "Security alert component for displaying system notifications and warnings.",
+      "registryDependencies": [
+        "alert",
+        "badge",
+        "button"
+      ],
+      "dependencies": [],
+      "files": [
+        {
+          "path": "app/components/security/SecurityAlerts.tsx",
+          "type": "registry:component"
+        }
+      ]
+    },
+    {
+      "name": "database-setup",
+      "type": "registry:block",
+      "title": "Database Setup Block",
+      "description": "Complete database configuration and setup flow.",
+      "registryDependencies": [
+        "card",
+        "button",
+        "input",
+        "form",
+        "alert"
+      ],
+      "dependencies": [
+        "better-sqlite3"
+      ],
+      "files": [
+        {
+          "path": "app/routes/setup.database.tsx",
+          "type": "registry:page"
+        }
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "name": "authentication",
+      "label": "Authentication",
+      "items": ["login-form", "setup-form", "auth-context"]
+    },
+    {
+      "name": "user-management", 
+      "label": "User Management",
+      "items": ["admin-user-form", "user-management-table"]
+    },
+    {
+      "name": "dashboard",
+      "label": "Dashboard",
+      "items": ["dashboard-layout", "activity-tracker", "theme-toggle"]
+    },
+    {
+      "name": "security",
+      "label": "Security",
+      "items": ["security-alerts", "database-setup"]
+    }
+  ],
+  "tailwind": {
+    "config": {
+      "theme": {
+        "container": {
+          "center": true,
+          "padding": "2rem",
+          "screens": {
+            "2xl": "1400px"
+          }
+        },
+        "extend": {
+          "colors": {
+            "border": "hsl(var(--border))",
+            "input": "hsl(var(--input))",
+            "ring": "hsl(var(--ring))",
+            "background": "hsl(var(--background))",
+            "foreground": "hsl(var(--foreground))",
+            "primary": {
+              "DEFAULT": "hsl(var(--primary))",
+              "foreground": "hsl(var(--primary-foreground))"
+            },
+            "secondary": {
+              "DEFAULT": "hsl(var(--secondary))",
+              "foreground": "hsl(var(--secondary-foreground))"
+            },
+            "destructive": {
+              "DEFAULT": "hsl(var(--destructive))",
+              "foreground": "hsl(var(--destructive-foreground))"
+            },
+            "muted": {
+              "DEFAULT": "hsl(var(--muted))",
+              "foreground": "hsl(var(--muted-foreground))"
+            },
+            "accent": {
+              "DEFAULT": "hsl(var(--accent))",
+              "foreground": "hsl(var(--accent-foreground))"
+            },
+            "popover": {
+              "DEFAULT": "hsl(var(--popover))",
+              "foreground": "hsl(var(--popover-foreground))"
+            },
+            "card": {
+              "DEFAULT": "hsl(var(--card))",
+              "foreground": "hsl(var(--card-foreground))"
+            }
+          }
+        }
+      }
+    }
+  },
+  "aliases": {
+    "components": "app/components",
+    "utils": "app/lib/utils"
+  }
+}
